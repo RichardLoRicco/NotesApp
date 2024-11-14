@@ -2,6 +2,6 @@ POST http://localhost:3001/api/notes
 Content-Type: application/json
 
 {
-  "content": "VS code rest clent is pretty good at testing backend",
-  "important": true
+  "content": "rest client is a handy tool",
+  "important": false
 }
