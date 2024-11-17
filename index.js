@@ -1,26 +1,10 @@
-require('dotenv').config()
 const express = require('express')
 const app = express()
+require('dotenv').config()
+
 const Note = require('./models/note')
 
-let notes = [
-  {
-    id: 1,
-    content: "HTML is easy",
-    important: true
-  },
-  {
-    id: 2,
-    content: "Browser can execute only JavaScript",
-    important: false
-  },
-  {
-    id: 3,
-    content: "GET and POST are the most important methods of HTTP protocol",
-    important: true
-  }
-]
-
+app.use(express.static('dist'))
 
 const requestLogger = (request, response, next) => {
   console.log('Method:', request.method)
@@ -30,9 +14,20 @@ const requestLogger = (request, response, next) => {
   next()
 }
 
+const errorHandler = (error, request, response, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError') {
+    return response.status(400).send({ error: 'malformatted id' })
+  } else if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
+
+  next(error)
+}
+
 const cors = require('cors')
 
-app.use(express.static('dist'))
 app.use(cors())
 app.use(express.json())
 app.use(requestLogger)
@@ -59,21 +54,18 @@ app.post('/api/notes', (request, response, next) => {
     important: body.important || false,
   })
 
-  note.save()
-    .then(savedNote => {
-      response.json(savedNote)
-    })
-
-    .catch(error => next(error))
+  note.save().then(savedNote => {
+    response.json(savedNote)
+  }).catch(error => next(error))
 })
 
-app.get('/api/notes/:id', (request, response) => {
+app.get('/api/notes/:id', (request, response, next) => {
   Note.findById(request.params.id)
     .then(note => {
       if (note) {
         response.json(note)
       } else {
-        response.status(404).end() 
+        response.status(404).end()
       }
     })
     .catch(error => next(error))
@@ -91,10 +83,10 @@ app.put('/api/notes/:id', (request, response, next) => {
   const { content, important } = request.body
 
   Note.findByIdAndUpdate(
-    request.params.id,
+    request.params.id, 
     { content, important },
     { new: true, runValidators: true, context: 'query' }
-  )
+  ) 
     .then(updatedNote => {
       response.json(updatedNote)
     })
@@ -102,22 +94,9 @@ app.put('/api/notes/:id', (request, response, next) => {
 })
 
 app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
-
-const errorHandler = (error, request, response, next) => {
-  console.error(error.message)
-  
-  if (error.name === 'CastError') {
-    return response.status(400).send({ error: 'malformatted id' })
-  } else if (error.name === 'ValidationError') {
-    return response.status(400).json({ error: error.message })
-  }
-  
-  next(error)
-}
-
-app.use(errorHandler)
