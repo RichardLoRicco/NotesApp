@@ -1,4 +1,4 @@
-POST http://localhost:3001/api/notes
+PUT http://localhost:3001/api/notes/6737efb607f2de6595e6ef1e
 Content-Type: application/json
 
 {
